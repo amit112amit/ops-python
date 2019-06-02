@@ -55,13 +55,19 @@ public:
   typedef Eigen::Ref<IntVector_t> RefI;
   typedef Eigen::Ref<const IntVector_t> RefCI;
 
-  LBFGSBWrapper(OPSModel &s);
+  LBFGSBWrapper(OPSModel& model, int m=5, int iprint=1000, int maxiter=100000,
+          double factr=10.0, double pgtol=1e-8);
   void setBounds(const RefCI nbd, const RefCV l, const RefCV u);
-  void setNumHessianCorrections(size_t m) { _m = m; }
-  void setPrintCode(size_t p) { _iprint = p; }
-  void setMaxIterations(size_t i) { _maxIterations = i; }
-  void setMachineEPSFactor(double_t f) { _factr = f; }
-  void setProjectedGradientTolerance(double_t p) { _pgtol = p; }
+  inline int getNumHessianCorrections() { return _m; }
+  inline int getPrintCode() { return _iprint; }
+  inline int getMaxIterations() { return _maxIterations; }
+  inline double_t getMachineEPSFactor() { return _factr; }
+  inline double_t getProjectedGradientTolerance() { return _pgtol; }
+  inline void setNumHessianCorrections(size_t m) { _m = m; }
+  inline void setPrintCode(size_t p) { _iprint = p; }
+  inline void setMaxIterations(size_t i) { _maxIterations = i; }
+  inline void setMachineEPSFactor(double_t f) { _factr = f; }
+  inline void setProjectedGradientTolerance(double_t p) { _pgtol = p; }
   void solve();
 
 private:
