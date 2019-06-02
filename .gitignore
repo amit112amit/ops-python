@@ -1,0 +1,4 @@
+build
+*.vtk
+HeatOPSModel.cxx
+__pycache__
