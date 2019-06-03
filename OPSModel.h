@@ -74,7 +74,7 @@ namespace OPS {
             double_t getAverageRadius();
             inline double_t getCircularityEnergy() { return _circEn; }
             inline void getInitialPositions(Matrix3Xd &v) { v = _initialPositions; }
-            std::array<double_t, 2> getMeanSquaredDisplacement();
+            std::tuple<double_t, double_t> getMeanSquaredDisplacement();
             double_t getMSD();
             inline std::vector<size_t> getInitialNeighbors() { return _initialNearestNeighbor; }
             inline double_t getMorseEnergy() { return _morseEn; }

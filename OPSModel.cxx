@@ -102,7 +102,6 @@ namespace OPS {
         std::getline(f, line);
         std::getline(f, line);
         _vtkfilesuffix = std::stod(line);
-        _vtkfilesuffix = _vtkfilesuffix > 0 ? _vtkfilesuffix + 1 : 0;
         // Read step number
         std::getline(f, line);
         std::getline(f, line);
@@ -509,7 +508,7 @@ namespace OPS {
     }
 
     //! Calculate tangential and full mean-squared displacement
-    std::array<double_t, 2> OPSModel::getMeanSquaredDisplacement() {
+    std::tuple<double_t, double_t> OPSModel::getMeanSquaredDisplacement() {
         MapM3Xd positions(_x.data(), 3, _N);
         _msd = 0;
         _msd_tgt = 0;
@@ -544,9 +543,7 @@ namespace OPS {
         }
         _msd /= _N;
         _msd_tgt /= _N;
-        msdAll[0] = _msd;
-        msdAll[1] = _msd_tgt;
-        return msdAll;
+        return std::make_tuple(_msd, _msd_tgt);
     }
 
     //! Calculate asphericity
