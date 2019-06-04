@@ -6,6 +6,7 @@ import pandas
 
 from opsmodel import OPSModel, Solver
 
+
 # -------------------------------------------------------------------------------
 # Get batch job task id if any.
 # -------------------------------------------------------------------------------
@@ -19,6 +20,8 @@ except KeyError:
 # -------------------------------------------------------------------------------
 vtkfile = 'T7.vtk'
 statefile = 'SimulationState-' + str(taskid) + '.dat'
+outfile = 'DetailedOutput-' + str(taskid) + '.h5'
+polydatafile = 'VTKFile-' + str(taskid) + '.h5'
 
 ops = OPSModel()
 
@@ -87,24 +90,33 @@ for index, row in itertools.islice(schedule.iterrows(), skiprows, None):
         ops.updateTriangles()
 
         # -----------------------------------------------------------------------
-        # Save visualization or simulation state
-        # -----------------------------------------------------------------------
-        if (step % savefrequency) == savefrequency - 1:
-            ops.timestep = step
-            ops.vtkfilecount = vtkcount
-            ops.writeSimulationState(statefile)
-
-        if i % printstep is 0 and printstep <= rowsteps:
-            vtkfile = 'T7-relaxed-' + str(vtkcount) + '.vtk'
-            ops.printVTKFile(vtkfile)
-            vtkcount += 1
-
-        # -----------------------------------------------------------------------
         # Collect statistics for output
         # -----------------------------------------------------------------------
         radialmsd, tangentialmsd = ops.bothMSD()
         outputrows.append({'Volume': ops.volume, 'MSD': radialmsd, 'MSDT': tangentialmsd,
                            'RMSAngleDeficit': ops.rmsAngleDeficit})
+
+        # -----------------------------------------------------------------------
+        # Save visualization, simulation state and/or the output statistics
+        # -----------------------------------------------------------------------
+        if (step % savefrequency) == savefrequency - 1:
+            ops.timestep = step
+            ops.vtkfilecount = vtkcount
+            ops.writeSimulationState(statefile)
+            with pandas.HDFStore(outfile, complevel=9) as store:
+                store.append('Table', pandas.DataFrame(outputrows, dtype='float32'))
+            outputrows.clear()
+
+        if i % printstep is 0 and printstep <= rowsteps:
+            points, normals, cells = ops.polyDataParts()
+            pointskey = '/T{0}/Points'.format(vtkcount)
+            normalskey = '/T{0}/Normals'.format(vtkcount)
+            cellskey = '/T{0}/Polygons'.format(vtkcount)
+            with pandas.HDFStore(polydatafile, complevel=9) as store:
+                store[pointskey] = pandas.DataFrame(points, dtype='float32')
+                store[normalskey] = pandas.DataFrame(normals, dtype='float32')
+                store[cellskey] = pandas.DataFrame(cells, dtype='int')
+            vtkcount += 1
 
         ops.updatePreviousX()
         step += 1
@@ -112,4 +124,8 @@ for index, row in itertools.islice(schedule.iterrows(), skiprows, None):
     # Reset rowstep for next row
     rowstep = 0
 
-pandas.DataFrame(outputrows).to_excel('Output.xlsx')
+# ---------------------------------------------------------------------------
+# Save any leftover output data
+# ---------------------------------------------------------------------------
+with pandas.HDFStore('DetailedOutput.h5', complevel=9) as store:
+    store.append('Table', pandas.DataFrame(outputrows, dtype='float32'))
