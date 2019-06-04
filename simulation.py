@@ -35,11 +35,11 @@ else:
 
 solver = Solver(ops)
 
-savefrequency = 500
+savefrequency = 200000
 vtkcount = ops.vtkfilecount
 step = ops.timestep
 
-schedule = pandas.read_csv('schedule-{}.dat'.format(taskid), sep=' ')
+schedule = pandas.read_csv('schedule-{}.dat'.format(taskid), sep='\t')
 skiprows, totalsteps = next(itertools.dropwhile(
     lambda x: x[1] <= step, enumerate(schedule.ViterMax.cumsum())))
 rowstep = schedule.ViterMax[skiprows] - (totalsteps - step)
