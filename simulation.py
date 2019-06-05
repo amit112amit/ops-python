@@ -1,11 +1,13 @@
+import collections
 import itertools
 import os
 from math import log, sqrt
 
+import numpy
+import h5py
 import pandas
 
 from opsmodel import OPSModel, Solver
-
 
 # -------------------------------------------------------------------------------
 # Get batch job task id if any.
@@ -19,12 +21,16 @@ except KeyError:
 # Initialization
 # -------------------------------------------------------------------------------
 vtkfile = 'T7.vtk'
-statefile = 'SimulationState-' + str(taskid) + '.dat'
-outfile = 'DetailedOutput-' + str(taskid) + '.h5'
 polydatafile = 'VTKFile-' + str(taskid) + '.h5'
+outfile = 'DetailedOutput-' + str(taskid) + '.h5'
+statefile = 'SimulationState-' + str(taskid) + '.dat'
 
+savefrequency = 500000  # DO NOT INCREASE FURTHER due to h5py chunking
+
+# Create the model
 ops = OPSModel()
 
+# New simulation or restore an old one from a saved state.
 if os.path.isfile(statefile):
     ops.restoreSavedState(statefile)
 elif os.path.isfile(vtkfile):
@@ -33,22 +39,39 @@ else:
     print('FileNotFound :', vtkfile, 'or', statefile)
     quit()
 
-solver = Solver(ops)
-
-savefrequency = 200000
+# Read the simulation schedule and identify starting state
+schedule = pandas.read_csv('schedule-{}.dat'.format(taskid), sep='\t')
 vtkcount = ops.vtkfilecount
 step = ops.timestep
-
-schedule = pandas.read_csv('schedule-{}.dat'.format(taskid), sep='\t')
 skiprows, totalsteps = next(itertools.dropwhile(
     lambda x: x[1] <= step, enumerate(schedule.ViterMax.cumsum())))
 rowstep = schedule.ViterMax[skiprows] - (totalsteps - step)
 
-outputrows = []
+# Create solver object
+solver = Solver(ops)
 
 # -------------------------------------------------------------------------------
-# Loop over every row in `schedule` starting from row `rowid`
+# Prepare output containers and the HDF5 file
 # -------------------------------------------------------------------------------
+output = {'Volume': collections.deque(maxlen=savefrequency),
+          'MSD': collections.deque(maxlen=savefrequency),
+          'MSDT': collections.deque(maxlen=savefrequency),
+          'RMSAngleDeficit': collections.deque(maxlen=savefrequency)}
+
+if not os.path.isfile(outfile):
+    with h5py.File(outfile, 'w') as hfile:
+        for key in output:
+            hfile.create_dataset(key, dtype='float16', shape=(savefrequency,),
+                                 maxshape=(schedule.ViterMax.sum(),),
+                                 chunks=(savefrequency,), compression='gzip')
+    outputsize = 0
+else:
+    with h5py.File(outfile, 'a') as hfile:
+        outputsize = len(hfile['Volume'])
+
+    # -------------------------------------------------------------------------------
+    # Loop over every row in `schedule` starting from row `rowid`
+    # -------------------------------------------------------------------------------
 for index, row in itertools.islice(schedule.iterrows(), skiprows, None):
     ops.fvk = row.Gamma
     ops.morseWellWidth = log(2.0)*100.0/row.PercentStrain
@@ -93,8 +116,10 @@ for index, row in itertools.islice(schedule.iterrows(), skiprows, None):
         # Collect statistics for output
         # -----------------------------------------------------------------------
         radialmsd, tangentialmsd = ops.bothMSD()
-        outputrows.append({'Volume': ops.volume, 'MSD': radialmsd, 'MSDT': tangentialmsd,
-                           'RMSAngleDeficit': ops.rmsAngleDeficit})
+        output['Volume'].append(ops.volume)
+        output['MSD'].append(radialmsd)
+        output['MSDT'].append(tangentialmsd)
+        output['RMSAngleDeficit'].append(ops.rmsAngleDeficit)
 
         # -----------------------------------------------------------------------
         # Save visualization, simulation state and/or the output statistics
@@ -103,19 +128,23 @@ for index, row in itertools.islice(schedule.iterrows(), skiprows, None):
             ops.timestep = step
             ops.vtkfilecount = vtkcount
             ops.writeSimulationState(statefile)
-            with pandas.HDFStore(outfile, complevel=9) as store:
-                store.append('Table', pandas.DataFrame(outputrows, dtype='float32'))
-            outputrows.clear()
+            with h5py.File(outfile, 'a') as hfile:
+                for key, data in output.items():
+                    hfile[key].resize((outputsize + savefrequency,))
+                    hfile[key].write_direct(numpy.array(data), numpy.s_[:], numpy.s_[outputsize:])
+                    data.clear()
+            outputsize += savefrequency
 
         if i % printstep is 0 and printstep <= rowsteps:
             points, normals, cells = ops.polyDataParts()
             pointskey = '/T{0}/Points'.format(vtkcount)
             normalskey = '/T{0}/Normals'.format(vtkcount)
             cellskey = '/T{0}/Polygons'.format(vtkcount)
-            with pandas.HDFStore(polydatafile, complevel=9) as store:
-                store[pointskey] = pandas.DataFrame(points, dtype='float32')
-                store[normalskey] = pandas.DataFrame(normals, dtype='float32')
-                store[cellskey] = pandas.DataFrame(cells, dtype='int')
+            with h5py.File(polydatafile, 'a') as hfile:
+                hfile.create_dataset(pointskey, data=points, dtype='float16')
+                hfile.create_dataset(normalskey, data=normals, dtype='float16')
+                # Largest uint8 = 255, not suitable if there are more points
+                hfile.create_dataset(cellskey, data=cells, dtype='uint8')
             vtkcount += 1
 
         ops.updatePreviousX()
@@ -127,5 +156,8 @@ for index, row in itertools.islice(schedule.iterrows(), skiprows, None):
 # ---------------------------------------------------------------------------
 # Save any leftover output data
 # ---------------------------------------------------------------------------
-with pandas.HDFStore(outfile, complevel=9) as store:
-    store.append('Table', pandas.DataFrame(outputrows, dtype='float32'))
+if len(output['Volume']) > 0:
+    with h5py.File(outfile, 'a') as hfile:
+        for key, data in output.items():
+            hfile[key].resize((outputsize + len(data),))
+            hfile[key].write_direct(numpy.array(data), numpy.s_[:], numpy.s_[outputsize:])
