@@ -7,6 +7,8 @@ cmake_policy(SET CMP0054 NEW)
 
 set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Optimized compilation flags." FORCE)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 find_package(VTK REQUIRED)
 include(${VTK_USE_FILE})
 
@@ -28,7 +30,7 @@ cmake_add_fortran_subdirectory( lbfgsb
 
 # Now create Python bindings
 add_subdirectory(pybind11)
-pybind11_add_module(opsmodel OPSModelPython.cxx OPSModel.cxx LBFGSBWrapper.cxx)
-target_link_libraries(opsmodel PUBLIC ${CGAL_LIBRARIES} ${VTK_LIBRARIES} lbfgsb Eigen3::Eigen)
-target_include_directories(opsmodel PUBLIC ${CGAL_INCLUDE_DIRS} ${VTK_INCLUDE_DIRS})
-target_compile_definitions(opsmodel PUBLIC "_NO_PRINTING_")
+pybind11_add_module(ops OPSModelPython.cxx OPSModel.cxx LBFGSBWrapper.cxx)
+target_link_libraries(ops PUBLIC ${VTK_LIBRARIES} ${CGAL_LIBRARIES} lbfgsb Eigen3::Eigen)
+target_include_directories(ops PUBLIC ${VTK_INCLUDE_DIRS})
+target_compile_definitions(ops PUBLIC "_NO_PRINTING_")

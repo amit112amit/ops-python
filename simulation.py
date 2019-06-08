@@ -7,7 +7,7 @@ import numpy
 import h5py
 import pandas
 
-from opsmodel import OPSModel, Solver
+from ops import Model, Solver
 
 # -------------------------------------------------------------------------------
 # Get batch job task id if any.
@@ -28,7 +28,7 @@ statefile = 'SimulationState-' + str(taskid) + '.dat'
 savefrequency = 500000  # DO NOT INCREASE FURTHER due to h5py chunking
 
 # Create the model
-ops = OPSModel()
+ops = Model()
 
 # New simulation or restore an old one from a saved state.
 if os.path.isfile(statefile):

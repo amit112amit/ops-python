@@ -1,15 +1,11 @@
 #include "OPSModel.h"
 
-typedef Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> MatrixX3fR;
-typedef Eigen::Matrix<int, Eigen::Dynamic, 3, Eigen::RowMajor> MatrixX3iR;
-
 namespace OPS
 {
 
 //! Constructor for BrownOPS
 void OPSModel::initializeFromVTKFile(std::string inFile)
 {
-
     // Read point positions from VTK File
     vtkNew<vtkPolyDataReader> reader;
     reader->SetFileName(inFile.c_str());
@@ -251,7 +247,7 @@ void OPSModel::printVTKFile(const std::string name)
 }
 
 //! Returns coordinates, normals and triangles of a polydata
-std::tuple<MatrixX3fR, MatrixX3fR, MatrixX3iR> OPSModel::polyDataParts()
+std::tuple<OPSModel::MatrixX3fR, OPSModel::MatrixX3fR, OPSModel::MatrixX3iR> OPSModel::polyDataParts()
 {
     MatrixX3fR coords(_N, 3), normals(_N, 3);
     MatrixX3iR triangles(_triangles.size(), 3);
