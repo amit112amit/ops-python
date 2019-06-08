@@ -9,11 +9,12 @@
 #include <CGAL/Convex_hull_traits_3.h>
 #include <CGAL/convex_hull_traits_2.h>
 
-namespace OPS{
-
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
 typedef std::pair<K::Point_3, unsigned> Point_with_info;
 typedef CGAL::Surface_mesh<Point_with_info> Surface_mesh;
+
+namespace OPS
+{
 
 template <class F>
 struct Forward_functor
@@ -514,5 +515,5 @@ public:
     }
 };
 
-}
+} // namespace OPS
 #endif //__CONVEXHULL_H__
