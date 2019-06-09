@@ -30,7 +30,7 @@ cmake_add_fortran_subdirectory( lbfgsb
 
 # Now create Python bindings
 add_subdirectory(pybind11)
-pybind11_add_module(ops OPSModelPython.cxx OPSModel.cxx LBFGSBWrapper.cxx)
+pybind11_add_module(ops OPSModelPython.cxx OPSModel.cxx LBFGSBWrapper.cxx ConvexHull.cxx)
 target_link_libraries(ops PUBLIC ${VTK_LIBRARIES} ${CGAL_LIBRARIES} lbfgsb Eigen3::Eigen)
 target_include_directories(ops PUBLIC ${VTK_INCLUDE_DIRS})
 target_compile_definitions(ops PUBLIC "_NO_PRINTING_")

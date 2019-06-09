@@ -26,7 +26,7 @@
 #include <vtkDataSetSurfaceFilter.h>
 #include <vtkCellArray.h>
 #include <vtkExtractEdges.h>
-#include "ConvexHull.h"
+#include "CGAL_ConvexHull_Traits.h"
 
 namespace OPS
 {
