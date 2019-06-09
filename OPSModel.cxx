@@ -642,12 +642,15 @@ void OPSModel::sphericalConvexHull()
     Matrix3Xd points(3, _N);
     points = positions;
 
+    // Reset the center of the sphere to origin by translating
+    points = points.colwise() - points.rowwise().mean();
+
     // Project points to unit sphere
     points.colwise().normalize();
 
     // Insert the projected points in a CGAL vertex_with_info vector
     std::vector<Point_with_info> verts;
-    for (auto j = 0; j < _N - 1; ++j)
+    for (auto j = 0; j < _N; ++j)
     {
         verts.push_back(std::make_pair(K::Point_3(points(0, j), points(1, j), points(2, j)), j));
     }

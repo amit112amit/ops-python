@@ -2,59 +2,16 @@
 #include "pybind11/eigen.h"
 #include "LBFGSBWrapper.h"
 #include "OPSModel.h"
+#include "ConvexHull.h"
 
 namespace py = pybind11;
-
-typedef Eigen::Matrix<double_t, Eigen::Dynamic, 3, Eigen::RowMajor> MatrixX3dR;
-typedef Eigen::Matrix<int, Eigen::Dynamic, 3, Eigen::RowMajor> MatrixX3iR;
-
-//! Special module level function to expose to Python.
-MatrixX3iR convexhull(Eigen::Ref<MatrixX3dR> positions)
-{
-    Surface_mesh sm;
-    auto N = positions.rows();
-
-    // Copy coordinates
-    MatrixX3dR points(N, 3);
-    points = positions;
-
-    // Project points to unit sphere
-    points.colwise().normalize();
-
-    // Insert the projected points in a CGAL vertex_with_info vector
-    std::vector<Point_with_info> verts;
-    for (auto j = 0; j < N - 1; ++j)
-    {
-        verts.push_back(std::make_pair(K::Point_3(points(j, 0), points(j, 1), points(j, 2)), j));
-    }
-
-    // Find the spherical convex hull
-    CGAL::convex_hull_3(verts.begin(), verts.end(), sm, OPS::CH_traits_for_point_with_info());
-    auto origids = sm.points();
-
-    MatrixX3iR triangles(sm.number_of_faces(), 3);
-
-    //Iterate over all triangles related to the center vertex
-    auto i = 0;
-    for (const auto &f : sm.faces())
-    {
-        auto h = sm.halfedge(f);
-        auto f0 = origids[sm.target(h)].second;
-        auto f1 = origids[sm.target(sm.next(h))].second;
-        auto f2 = origids[sm.target(sm.next(sm.next(h)))].second;
-        triangles(i, 0) = f0;
-        triangles(i, 1) = f1;
-        triangles(i, 2) = f2;
-        ++i;
-    }
-
-    return triangles;
-}
 
 PYBIND11_MODULE(ops, m)
 {
     m.doc() = "Oriented Particle System approach for modelling closed shell of point cloud.";
-    m.def("sphericalconvexhull", &convexhull, "Project to sphere and make convex hull.");
+    m.def("cgalconvexhull", &cgalconvexhull, "Project to sphere and make convex hull with CGAL.");
+    m.def("cgaldelaunay", &cgaldelaunay, "Project to sphere and make 3D Delaunay with CGAL.");
+    m.def("vtkdelaunay", &vtkdelaunay, "Project to sphere and make 3D Delaunay with VTK.");
 
     py::class_<OPS::OPSModel>(m, "Model")
         .def(py::init<>())
