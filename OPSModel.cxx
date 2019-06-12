@@ -37,7 +37,6 @@ void OPSModel::initializeFromVTKFile(std::string inFile)
     _initialPositions = xpos;
 
     // Construct triangles and edges
-    _traits_convex_hull = CH_traits_for_point_with_info();
     updateTriangles();
 
     // Set the initial nearest neighbor map
@@ -187,7 +186,6 @@ void OPSModel::restoreSavedState(std::string stateFile)
     computeNormals();
 
     // Update the triangle data structure
-    _traits_convex_hull = CH_traits_for_point_with_info();
     updateTriangles();
 }
 

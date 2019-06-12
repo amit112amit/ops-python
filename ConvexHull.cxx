@@ -21,7 +21,7 @@ MatrixX3iR cgalconvexhull(Eigen::Ref<MatrixX3dR> positions)
     }
 
     // Find the spherical convex hull
-    CGAL::convex_hull_3(verts.begin(), verts.end(), sm, OPS::CH_traits_for_point_with_info());
+    CGAL::convex_hull_3(verts.begin(), verts.end(), sm, CHT(Pmap()));
     auto origids = sm.points();
 
     MatrixX3iR triangles(sm.number_of_faces(), 3);

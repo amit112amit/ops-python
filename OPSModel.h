@@ -26,7 +26,10 @@
 #include <vtkDataSetSurfaceFilter.h>
 #include <vtkCellArray.h>
 #include <vtkExtractEdges.h>
-#include "CGAL_ConvexHull_Traits.h"
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Extreme_points_traits_adapter_3.h>
+#include <CGAL/Surface_mesh.h>
+#include <CGAL/convex_hull_3.h>
 
 namespace OPS
 {
@@ -52,8 +55,14 @@ public:
     typedef Eigen::AngleAxisd AngleAxisd;
     typedef Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor> MatrixX3fR;
     typedef Eigen::Matrix<int, Eigen::Dynamic, 3, Eigen::RowMajor> MatrixX3iR;
+    typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
+    typedef std::pair<K::Point_3, unsigned> Point_with_info;
+    typedef CGAL::Surface_mesh<Point_with_info> Surface_mesh;
+    typedef CGAL::First_of_pair_property_map<Point_with_info> Pmap;
+    typedef CGAL::Extreme_points_traits_adapter_3<Pmap, CGAL::Convex_hull_traits_3<K>> CHT;
 
-    OPSModel(){};
+
+    OPSModel():_traits_convex_hull(CHT(Pmap())){};
     void applyKabschAlgorithm();
     void compute();
     void computeNormals();
@@ -166,7 +175,7 @@ protected:
     std::mt19937 _e2;
     VectorXd _x, _g, _xi, _pX;
     Surface_mesh _sm;
-    CH_traits_for_point_with_info _traits_convex_hull;
+    CHT _traits_convex_hull;
     Surface_mesh::Property_map<Surface_mesh::Vertex_index, Point_with_info> _origids;
 
     void updateRotationVectors();
