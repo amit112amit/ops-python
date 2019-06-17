@@ -27,6 +27,7 @@ cmake_add_fortran_subdirectory( lbfgsb
 		LINK_LIBRARIES
 		NO_EXTERNAL_INSTALL
 		)
+
 if(MSYS)
 	message("MSYS generator in use. We will apply a hack to get pybind11 to detect Python libraries correctly.")
 	unset(CMAKE_HOST_WIN32)
