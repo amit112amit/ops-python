@@ -7,3 +7,5 @@ test
 .vscode
 *.so
 *.dat
+buildmsys
+buildwsl
