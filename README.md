@@ -1,4 +1,4 @@
-I have another repository `oriented-particles` which is in C++. Here I generate Python bindings for the a subset of the C++ code. The goal is to learn making Python bindings. It is also helpful to have the core libraries in fast C++ and to write drivers in Python using `h5py`, `pandas` etc. for managing input/output of the program.
+I have another repository `oriented-particles` which is in C++. Here I generate Python bindings for a subset of the C++ code. The goal is to learn making Python bindings. It is also helpful to have the core libraries in fast C++ and to write drivers in Python using `h5py`, `pandas` etc. for managing input/output of the program.
 
 ## Building on Windows 10 with MSYS2:
 1. Install MSYS2 and then using the MSYS2 shell install the following packages:
