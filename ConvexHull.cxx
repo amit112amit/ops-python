@@ -43,13 +43,13 @@ MatrixX3iR cgalconvexhull(Eigen::Ref<MatrixX3dR> positions)
 
 MatrixX3iR vtkdelaunay(Eigen::Ref<MatrixX3dR> points)
 {
-    vtkNew<vtkPoints> pts;
-    vtkNew<vtkDoubleArray> unitPData;
-    vtkNew<vtkPolyData> unitSphere;
-    vtkNew<vtkDataSetSurfaceFilter> dssf;
-    vtkNew<vtkIdFilter> idf;
-    vtkNew<vtkDelaunay3D> d3D;
-    vtkNew<vtkIdList> pointIds;
+    auto pts = vtkSmartPointer<vtkPoints>::New();
+    auto unitPData = vtkSmartPointer<vtkDoubleArray>::New();
+    auto unitSphere = vtkSmartPointer<vtkPolyData>::New();
+    auto dssf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+    auto idf = vtkSmartPointer<vtkIdFilter>::New();
+    auto d3D = vtkSmartPointer<vtkDelaunay3D>::New();
+    auto pointIds = vtkSmartPointer<vtkIdList>::New();
 
     size_t N = points.rows();
     MatrixX3dR unitP(N, 3);

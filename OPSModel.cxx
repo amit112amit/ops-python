@@ -7,7 +7,7 @@ namespace OPS
 void OPSModel::initializeFromVTKFile(std::string inFile)
 {
     // Read point positions from VTK File
-    vtkNew<vtkPolyDataReader> reader;
+    auto reader = vtkSmartPointer<vtkPolyDataReader>::New();
     reader->SetFileName(inFile.c_str());
     reader->ReadAllVectorsOn();
     reader->Update();
@@ -41,25 +41,25 @@ void OPSModel::initializeFromVTKFile(std::string inFile)
 
     // Set the initial nearest neighbor map
     void *coords = (void *)_x.data();
-    vtkNew<vtkDoubleArray> pointCoords;
+    auto pointCoords = vtkSmartPointer<vtkDoubleArray>::New();
     pointCoords->SetVoidArray(coords, 3 * _N, 1);
     pointCoords->SetNumberOfComponents(3);
 
-    vtkNew<vtkPoints> points;
+    auto points = vtkSmartPointer<vtkPoints>::New();
     points->SetData(pointCoords);
 
     // Construct vtkPolyData
-    vtkNew<vtkPolyData> polyData;
+    auto polyData = vtkSmartPointer<vtkPolyData>::New();
     polyData->SetPoints(points);
 
     // Construct the kd-tree
-    vtkNew<vtkOctreePointLocator> octree;
+    auto octree = vtkSmartPointer<vtkOctreePointLocator>::New();
     octree->SetDataSet(polyData);
     octree->BuildLocator();
 
     for (auto i = 0; i < _N; i++)
     {
-        vtkNew<vtkIdList> neighbors;
+        auto neighbors = vtkSmartPointer<vtkIdList>::New();
         octree->FindClosestNPoints(2, &_x(3 * i), neighbors);
         neighbors->DeleteId(i);
         _initialNearestNeighbor.push_back(neighbors->GetId(0));
@@ -211,7 +211,7 @@ void OPSModel::computeNormals()
 //! Print a VTK file
 void OPSModel::printVTKFile(const std::string name)
 {
-    vtkNew<vtkCellArray> triangles;
+    auto triangles = vtkSmartPointer<vtkCellArray>::New();
     for (const auto &f : _triangles)
     {
         triangles->InsertNextCell(3);
@@ -219,26 +219,26 @@ void OPSModel::printVTKFile(const std::string name)
             triangles->InsertCellPoint(f[j]);
     }
     // Extract point coordinates for _polyData from x
-    vtkNew<vtkDoubleArray> pointCoords;
+    auto pointCoords = vtkSmartPointer<vtkDoubleArray>::New();
     pointCoords->SetVoidArray((void *)_x.data(), 3 * _N, 1);
     pointCoords->SetNumberOfComponents(3);
 
-    vtkNew<vtkPoints> points;
+    auto points = vtkSmartPointer<vtkPoints>::New();
     points->SetData(pointCoords);
 
     // Convert rotation vectors to point normals
-    vtkNew<vtkDoubleArray> pointNormals;
+    auto pointNormals = vtkSmartPointer<vtkDoubleArray>::New();
     pointNormals->SetName("PointNormals");
     pointNormals->SetVoidArray((void *)_normals.data(), 3 * _N, 1);
     pointNormals->SetNumberOfComponents(3);
 
     // Construct vtkPolyData
-    vtkNew<vtkPolyData> polyData;
+    auto polyData = vtkSmartPointer<vtkPolyData>::New();
     polyData->SetPoints(points);
     polyData->GetPointData()->SetNormals(pointNormals);
     polyData->SetPolys(triangles);
 
-    vtkNew<vtkPolyDataWriter> writer;
+    auto writer = vtkSmartPointer<vtkPolyDataWriter>::New();
     writer->SetFileName(name.c_str());
     writer->SetInputData(polyData);
     writer->Write();
@@ -764,12 +764,12 @@ Eigen::Affine3d OPSModel::find3DAffineTransform(Eigen::Ref<Eigen::Matrix3Xd> in,
 //! Find average edge lengthf of a point cloud read from VTK file.
 double_t OPSModel::getPointCloudAvgEdgeLen(std::string vtkfile)
 {
-    vtkNew<vtkPolyDataReader> rd;
-    vtkNew<vtkPoints> newpts;
-    vtkNew<vtkDelaunay3D> d3D;
-    vtkNew<vtkDataSetSurfaceFilter> dssf;
-    vtkNew<vtkExtractEdges> ee;
-    vtkNew<vtkIdList> verts;
+    auto rd = vtkSmartPointer<vtkPolyDataReader>::New();
+    auto newpts = vtkSmartPointer<vtkPoints>::New();
+    auto d3D = vtkSmartPointer<vtkDelaunay3D>::New();
+    auto dssf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+    auto ee = vtkSmartPointer<vtkExtractEdges>::New();
+    auto verts = vtkSmartPointer<vtkIdList>::New();
 
     rd->SetFileName(vtkfile.c_str());
     d3D->SetInputConnection(rd->GetOutputPort());
