@@ -17,7 +17,8 @@ MatrixX3iR cgalconvexhull(Eigen::Ref<MatrixX3dR> positions)
     std::vector<Point_with_info> verts;
     for (auto j = 0; j < N; ++j)
     {
-        verts.push_back(std::make_pair(K::Point_3(points(j, 0), points(j, 1), points(j, 2)), j));
+        verts.push_back(std::make_pair(K::Point_3(points(j, 0), points(j, 1),
+		       	points(j, 2)), j));
     }
 
     // Find the spherical convex hull
@@ -115,7 +116,8 @@ MatrixX3iR cgaldelaunay(Eigen::Ref<MatrixX3dR> positions)
     std::vector<std::pair<Point, unsigned>> verts;
     for (auto j = 0; j < N; ++j)
     {
-        verts.push_back(std::make_pair(Point(points(j, 0), points(j, 1), points(j, 2)), j));
+        verts.push_back(std::make_pair(Point(points(j, 0), points(j, 1),
+		       	points(j, 2)), j));
     }
 
     Delaunay dt(verts.begin(), verts.end());

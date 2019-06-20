@@ -1,5 +1,5 @@
 # Use this to initialize the cache when building on Windows with MSYS Makefiles
-# e.g. cmake -c InitCache.cmake -G "MSYS Makefiles" /path/to/ops-python
+# e.g. cmake -c InitCacheMSYS2.cmake -G "MSYS Makefiles" /path/to/ops-python
 
 set(PYTHONLIBS_FOUND "ON" CACHE BOOL "pybind11 - have the Python libs been found")
 set(PYTHON_PREFIX "C:/Program Files/Python37" CACHE PATH "pybind11 - path to the Python installation")

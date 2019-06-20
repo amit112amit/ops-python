@@ -8,4 +8,7 @@ test
 *.so
 *.dat
 buildmsys
+buildmingw
 buildwsl
+.pylintrc
+*.pyc
