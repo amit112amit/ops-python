@@ -87,9 +87,15 @@ public:
     double_t getRMSAngleDeficit();
     inline double_t getTotalEnergy() { return (_morseEn + _normalEn + _circEn); }
     double_t getVolume();
-    double_t *getF() { return &_f; }
-    double_t *getG() { return _g.data(); }
-    double_t *getX() { return _x.data(); }
+    inline double_t *getF() { return &_f; }
+    inline double_t *getG() { return _g.data(); }
+    inline double_t *getX() { return _x.data(); }
+    inline MatrixX3fR getPositionVectors(){
+	Eigen::Map<Eigen::Matrix<double_t, Eigen::Dynamic, 3, Eigen::RowMajor>> pos(_x.data(), _N, 3);
+	MatrixX3fR posf(_N, 3);
+	posf = pos.cast<float>();
+	return posf;
+    }
     void initializeFromVTKFile(std::string vtkfile);
     static void initialRotationVector(RefM3Xd pos, RefM3Xd rotVec);
     void printVTKFile(const std::string name);

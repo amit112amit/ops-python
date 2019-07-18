@@ -10,5 +10,6 @@ test
 buildmsys
 buildmingw
 buildwsl
+build
 .pylintrc
 *.pyc
