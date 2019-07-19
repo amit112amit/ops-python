@@ -1,0 +1,8 @@
+set(CMAKE_PREFIX_PATH "/u/home/a/amit112a/Software/" CACHE PATH "Prefix path")
+set(CMAKE_CXX_COMPILER "/u/home/a/amit112a/Software/bin/c++"  CACHE FILEPATH "C++")
+set(CMAKE_FORTRAN_COMPILER "/u/home/a/amit112a/Software/bin/gfortran" CACHE FILEPATH "Fortran")
+set(CMAKE_Fortran_FLAGS "-fPIC" CACHE STRING "Fortran flag")
+set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Flags")
+set(EIGEN_INCLUDE_DIR "/u/home/a/amit112a/Software/include/eigen3" CACHE PATH "Eigen")
+set(VTK_DIR "/u/home/a/amit112a/Software/lib/cmake/vtk-8.0" CACHE PATH "Eigen")
+set(BOOST_ROOT "/u/local/apps/boost/1_59_0/gcc-4.4.7/" CACHE PATH "Boost root dir")
