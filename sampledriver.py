@@ -1,24 +1,32 @@
-from opsmodel import OPSModel, Solver
+from numpy import dot, cross
+from numpy.linalg import norm
 from math import log
 
-ops = OPSModel()
+import sys
+sys.path.append('/home/amit/WorkSpace/UCLA/ops-python/build')
+from ops import Model, Solver
 
-ops.initializeFromVTKFile('T7.vtk')
-namesuffix = ops.vtkfilecount
-step = ops.timestep
-ops.viscosity = 0.0
-ops.brownCoeff = 0.0
-ops.morseDistance = 1.0
-ops.morseWellWidth = 100.0/15 * log(2.0)
-ops.fvk = 1000.0
+opsmodel = Model()
 
-solver = Solver(ops)
+opsmodel.initializeFromVTKFile('T7.vtk')
+namesuffix = opsmodel.vtkfilecount
+step = opsmodel.timestep
+opsmodel.viscosity = 0.0
+opsmodel.brownCoeff = 0.0
+opsmodel.lagrangeCoeff = 0.0
+opsmodel.penaltyCoeff = 0.0
+opsmodel.morseDistance = 1.0
+opsmodel.morseWellWidth = 100.0/15 * log(2.0)
+opsmodel.fvk = 1000.0
+
+solver = Solver(opsmodel)
 solver.maxiter = 1000
 solver.solve()
 
-ops.printVTKFile('Relaxed.vtk')
+opsmodel.updateTriangles()
+opsmodel.printVTKFile('Relaxed.vtk')
 
-coords, normals, triangles = ops.polyDataParts()
+coords, normals, triangles = opsmodel.polyDataParts()
 
-print('Total energy = ', ops.totalEnergy)
-print('Volume = ', ops.volume)
+print('Total energy = ', opsmodel.totalEnergy)
+print('Volume = ', opsmodel.volume)
