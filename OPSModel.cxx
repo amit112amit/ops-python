@@ -28,7 +28,7 @@ void OPSModel::initializeFromVTKFile(std::string inFile)
 
     // Renormalize by the average edge length
     auto L = getPointCloudAvgEdgeLen(inFile);
-    _x /= getPointCloudAvgEdgeLen(inFile);
+    _x /= L;
     updatePreviousX();
 
     // Generate rotation vectors from input point coordinates
@@ -215,7 +215,7 @@ void OPSModel::printVTKFile(const std::string name)
     for (const auto &f : _triangles)
     {
         triangles->InsertNextCell(3);
-        for (auto j = 2; j >= 0; --j)
+        for (auto j = 0; j < 3; ++j)
             triangles->InsertCellPoint(f[j]);
     }
     // Extract point coordinates for _polyData from x
@@ -562,10 +562,11 @@ double_t OPSModel::getVolume()
     if (_updateVolume)
     {
         _volume = 0.0;
-        for (const auto &f : _triangles)
+        for (const auto &f : _triangles){
             _volume +=
                 0.166666667 * (positions.col(f[0]).dot(
-                                  positions.col(f[2]).cross(positions.col(f[1]))));
+                                  positions.col(f[1]).cross(positions.col(f[2]))));
+        }
         _updateVolume = false;
     }
     return _volume;
