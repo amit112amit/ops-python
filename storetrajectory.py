@@ -130,16 +130,6 @@ for index, row in itertools.islice(schedule.iterrows(), skiprows, None):
             outputsize += savefrequency
 
         if i % printstep is 0 and printstep <= rowsteps:
-            points, normals, cells = ops.polyDataParts()
-            pointskey = '/T{0}/Points'.format(vtkcount)
-            normalskey = '/T{0}/Normals'.format(vtkcount)
-            cellskey = '/T{0}/Polygons'.format(vtkcount)
-            with h5py.File(polydatafile, 'a') as hfile:
-                hfile.attrs['TimeSteps'] = vtkcount + 1
-                hfile.create_dataset(pointskey, data=points, dtype='float16')
-                hfile.create_dataset(normalskey, data=normals, dtype='float16')
-                # Largest uint8 = 255, not suitable if there are more points
-                hfile.create_dataset(cellskey, data=cells, dtype='uint8')
             vtkcount += 1
 
         ops.updatePreviousX()
