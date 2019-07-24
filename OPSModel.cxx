@@ -36,6 +36,9 @@ void OPSModel::initializeFromVTKFile(std::string inFile)
     initialRotationVector(xpos, xrot);
     _initialPositions = xpos;
 
+    // Store the starting radius
+    _R0 = xpos.colwise().norm().sum() / _N;
+
     // Construct triangles and edges
     updateTriangles();
 
@@ -113,6 +116,10 @@ void OPSModel::restoreSavedState(std::string stateFile)
     std::getline(f, line);
     std::getline(f, line);
     ignore = std::stod(line);
+    // Read starting radius
+    std::getline(f, line);
+    std::getline(f, line);
+    _R0 = std::stod(line);
 
     // Read random engine state
     std::getline(f, line);
@@ -291,6 +298,8 @@ void OPSModel::compute()
     _f = 0.0;
     _g.setZero(6 * _N);
 
+    double_t factor = 0.666666666666667 * _a * _a * _R0 * _R0 * _gamma_inv;
+
     computeNormals();
     diffNormalRotVec();
 
@@ -322,15 +331,15 @@ void OPSModel::compute()
 
         // Update the energies
         _morseEn += morseEn;
-        _normalEn += Phi_n * _gamma_inv;
-        _circEn += Phi_c * _gamma_inv;
-        _f += morseEn + (Phi_n + Phi_c) * _gamma_inv;
+        _normalEn += Phi_n * factor;
+        _circEn += Phi_c * factor;
+        _f += morseEn + (Phi_n + Phi_c) * factor;
 
         // Calculate the total derivatives of energy wrt xi, vi and vj
-        posGradient.col(e[0]) -= dMdr + dCdr * _gamma_inv;
-        posGradient.col(e[1]) += dMdr + dCdr * _gamma_inv;
-        rotGradient.col(e[0]) += (dPhi_nVi + dPhi_cVi) * _gamma_inv;
-        rotGradient.col(e[1]) += (dPhi_nVj + dPhi_cVj) * _gamma_inv;
+        posGradient.col(e[0]) -= dMdr + dCdr * factor;
+        posGradient.col(e[1]) += dMdr + dCdr * factor;
+        rotGradient.col(e[0]) += (dPhi_nVi + dPhi_cVi) * factor;
+        rotGradient.col(e[1]) += (dPhi_nVj + dPhi_cVj) * factor;
     }
 
     // Prepare area constraint variables
@@ -562,7 +571,8 @@ double_t OPSModel::getVolume()
     if (_updateVolume)
     {
         _volume = 0.0;
-        for (const auto &f : _triangles){
+        for (const auto &f : _triangles)
+        {
             _volume +=
                 0.166666667 * (positions.col(f[0]).dot(
                                   positions.col(f[1]).cross(positions.col(f[2]))));
@@ -811,6 +821,8 @@ void OPSModel::writeSimulationState(std::string file)
       << gamma << std::endl
       << "# Beta or 1/Temperature" << std::endl
       << beta << std::endl
+      << "# Starting radius" << std::endl
+      << _R0 << std::endl
       << "# State of the random number engine" << std::endl
       << _e2 << std::endl
       << "# State of the random number generator" << std::endl

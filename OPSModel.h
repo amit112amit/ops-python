@@ -168,6 +168,7 @@ protected:
   double_t _f;
   double_t _tolerance = 1e-10;
   double_t _viscosity = 0.0, _viscoEn = 0.0;
+  double_t _R0 = 0.0;
   Matrix3Xd _normals, _initialPositions;
   NormD _rng;
   size_t _N, _timestep = 0, _vtkfilesuffix = 0;
