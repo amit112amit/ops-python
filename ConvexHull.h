@@ -39,3 +39,12 @@ typedef Eigen::Matrix<int, Eigen::Dynamic, 3, Eigen::RowMajor> MatrixX3iR;
 MatrixX3iR cgalconvexhull(Eigen::Ref<MatrixX3dR> positions);
 MatrixX3iR vtkdelaunay(Eigen::Ref<MatrixX3dR> points);
 MatrixX3iR cgaldelaunay(Eigen::Ref<MatrixX3dR> positions);
+
+typedef Eigen::VectorXi VectorXi;
+typedef Eigen::VectorXd VectorXd;
+typedef Eigen::Vector3d Vector3d;
+typedef Eigen::Matrix<double_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixdR;
+void shellstats(Eigen::Ref<MatrixdR> data,
+                Eigen::Ref<VectorXi> neighbors,
+                Eigen::Ref<VectorXd> asphericity, Eigen::Ref<VectorXd> msd,
+                Eigen::Ref<VectorXd> radius, Eigen::Ref<VectorXd> volume);

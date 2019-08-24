@@ -18,7 +18,8 @@ MatrixX3iR cgalconvexhull(Eigen::Ref<MatrixX3dR> positions)
     for (auto j = 0; j < N; ++j)
     {
         verts.push_back(std::make_pair(K::Point_3(points(j, 0), points(j, 1),
-		       	points(j, 2)), j));
+                                                  points(j, 2)),
+                                       j));
     }
 
     // Find the spherical convex hull
@@ -117,7 +118,8 @@ MatrixX3iR cgaldelaunay(Eigen::Ref<MatrixX3dR> positions)
     for (auto j = 0; j < N; ++j)
     {
         verts.push_back(std::make_pair(Point(points(j, 0), points(j, 1),
-		       	points(j, 2)), j));
+                                             points(j, 2)),
+                                       j));
     }
 
     Delaunay dt(verts.begin(), verts.end());
@@ -131,7 +133,8 @@ MatrixX3iR cgaldelaunay(Eigen::Ref<MatrixX3dR> positions)
     for (const auto &ch : cellhandles)
     {
         auto infindex = ch->index(inf);
-        for(auto j = 0; j < 3; ++j){
+        for (auto j = 0; j < 3; ++j)
+        {
             auto vi = Delaunay::vertex_triple_index(infindex, j);
             triangles(i, j) = ch->vertex(vi)->info();
         }
@@ -139,4 +142,55 @@ MatrixX3iR cgaldelaunay(Eigen::Ref<MatrixX3dR> positions)
     }
 
     return triangles;
+}
+
+void shellstats(Eigen::Ref<MatrixdR> data, Eigen::Ref<VectorXi> neighbors,
+                Eigen::Ref<VectorXd> asphericity, Eigen::Ref<VectorXd> msd,
+                Eigen::Ref<VectorXd> radius, Eigen::Ref<VectorXd> volume)
+{
+    size_t N = int(data.cols() / 3);
+    Eigen::Map<MatrixX3dR> initial(&data(0, 0), N, 3);
+    for (size_t i = 0; i < data.rows(); ++i)
+    {
+        Eigen::Map<MatrixX3dR> current(&data(i, 0), N, 3);
+        Eigen::VectorXd R(N);
+        R = current.rowwise().norm();
+        auto R0 = R.mean();
+        radius(i) = R0;
+        asphericity(i) = ((R.array() - R0).square()).sum();
+        asphericity(i) /= (N * R0 * R0);
+        auto triangles = cgalconvexhull(current);
+        volume(i) = 0.0;
+        for (size_t j = 0; j < triangles.rows(); ++j)
+        {
+            auto a = triangles(j, 0);
+            auto b = triangles(j, 1);
+            auto c = triangles(j, 2);
+            volume(i) +=
+                0.166666667 * (current.row(a).dot(
+                                  current.row(b).cross(current.row(c))));
+        }
+
+        msd(i) = 0;
+        for (size_t j = 0; j < N; ++j)
+        {
+            Vector3d xi, xj, diff, xi_diff, xj_diff;
+            Vector3d xi0, xj0, xi1, xj1, ni0, nj0;
+
+            auto nn = neighbors(j);
+
+            xi0 = initial.row(j);
+            xi1 = current.row(j);
+
+            xj0 = initial.row(nn);
+            xj1 = current.row(nn);
+
+            xi_diff = (xi1 - xi0);
+            xj_diff = (xj1 - xj0);
+
+            diff = xi_diff - xj_diff;
+            msd(i) += diff.dot(diff);
+        }
+        msd(i) /= N;
+    }
 }

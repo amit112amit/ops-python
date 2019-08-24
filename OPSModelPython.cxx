@@ -12,6 +12,7 @@ PYBIND11_MODULE(ops, m)
     m.def("cgalconvexhull", &cgalconvexhull, "Project to sphere and make convex hull with CGAL.");
     m.def("cgaldelaunay", &cgaldelaunay, "Project to sphere and make 3D Delaunay with CGAL.");
     m.def("vtkdelaunay", &vtkdelaunay, "Project to sphere and make 3D Delaunay with VTK.");
+    m.def("shellstats", &shellstats, "Convert a row of numbers to a shell and calculate stats.");
 
     py::class_<OPS::OPSModel>(m, "Model")
         .def(py::init<>())
