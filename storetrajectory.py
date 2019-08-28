@@ -58,7 +58,7 @@ output = collections.deque(maxlen=savefrequency*N*3)
 
 if not os.path.isfile(outfile):
     with h5py.File(outfile, 'w') as hfile:
-        hfile.create_dataset('Positions', dtype='float16', shape=(savefrequency, N*3),
+        hfile.create_dataset('Positions', dtype='float32', shape=(savefrequency, N*3),
                              maxshape=(schedule.ViterMax.sum(), N*3),
                              chunks=(savefrequency, N*3), compression='gzip')
     outputsize = 0

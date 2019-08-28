@@ -61,7 +61,7 @@ output = {'Volume': collections.deque(maxlen=savefrequency),
 if not os.path.isfile(outfile):
     with h5py.File(outfile, 'w') as hfile:
         for key in output:
-            hfile.create_dataset(key, dtype='float16', shape=(savefrequency,),
+            hfile.create_dataset(key, dtype='float32', shape=(savefrequency,),
                                  maxshape=(schedule.ViterMax.sum(),),
                                  chunks=(savefrequency,), compression='gzip')
     outputsize = 0
