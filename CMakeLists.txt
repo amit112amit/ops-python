@@ -33,6 +33,10 @@ cmake_add_fortran_subdirectory( lbfgsb
 	NO_EXTERNAL_INSTALL
 	)
 
+# A library to expose C-style function
+add_library(opslib SHARED ExportConvexHull.cxx)
+target_link_libraries(opslib PUBLIC CGAL::CGAL Eigen3::Eigen)
+
 # Now create Python bindings
 add_subdirectory(pybind11)
 pybind11_add_module(ops OPSModelPython.cxx OPSModel.cxx LBFGSBWrapper.cxx ConvexHull.cxx)
