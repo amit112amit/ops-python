@@ -445,7 +445,7 @@ void OPSModel::applyKabschAlgorithm()
         positions.col(i) = tempPos;
         _normals.col(i) = (tempN - tempPos).normalized();
     }
-    updateRotati;noonVectors();
+    updateRotationVectors();
 }
 
 //! Update Rotation Vectors as per the current normals e.g. after Kabsch update
