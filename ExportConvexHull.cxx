@@ -32,7 +32,6 @@ void cgalconvexhullc(size_t N, float *coordinates, int triangles[])
 
     //Iterate over all triangles related to the center vertex
     auto i = 0;
-    std::cout<< "Number of triangles = " << sm.number_of_faces() << std::endl;
     for (const auto &f : sm.faces())
     {
         auto h = sm.halfedge(f);
@@ -40,9 +39,9 @@ void cgalconvexhullc(size_t N, float *coordinates, int triangles[])
         auto f1 = origids[sm.target(sm.next(h))].second;
         auto f2 = origids[sm.target(sm.next(sm.next(h)))].second;
         //std::cout<< f0 <<", " << f1 << ", " << f2 << std::endl;
-        triangles[i++] = int(f0);
-        triangles[i++] = int(f1);
-        triangles[i++] = int(f2);
+        triangles[i++] = f0;
+        triangles[i++] = f1;
+        triangles[i++] = f2;
     }
 
     return;
