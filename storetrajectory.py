@@ -25,7 +25,7 @@ polydatafile = 'VTKFile-' + str(taskid) + '.h5'
 outfile = 'DetailedOutput-' + str(taskid) + '.h5'
 statefile = 'SimulationState-' + str(taskid) + '.dat'
 
-savefrequency = 2400  # DO NOT INCREASE FURTHER due to h5py chunking size limits
+savefrequency = 1200  # DO NOT INCREASE FURTHER due to h5py chunking size limits
 
 # Create the model
 ops = Model()
