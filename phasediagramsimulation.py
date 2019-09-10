@@ -46,7 +46,7 @@ if os.path.isfile(statefile):
     with h5py.File(polydatafile, 'a') as hfile:
         # Get all the keys in the file
         keyids = [int(k[1:]) for k in hfile.keys()]
-        for key in filter(lambda x: x > vtkcount, keyids):
+        for key in filter(lambda x: x >= vtkcount, keyids):
             pointskey = '/T{0}/Points'.format(key)
             normalskey = '/T{0}/Normals'.format(key)
             cellskey = '/T{0}/Polygons'.format(key)
