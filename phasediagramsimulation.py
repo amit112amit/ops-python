@@ -17,6 +17,14 @@ try:
 except KeyError:
     taskid = 1
 
+# Find the file 'MapIds.txt' if it exists
+try:
+    with open('MapIds.txt', 'r') as mapfile:
+        ids = mapfile.read().split('\n')[:-1]
+    taskid = ids[int(taskid) - 1]
+except FileNotFoundError:
+    pass
+
 # -------------------------------------------------------------------------------
 # Initialization
 # -------------------------------------------------------------------------------
