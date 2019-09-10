@@ -41,6 +41,7 @@ ops = Model()
 # New simulation or restore an old one from a saved state.
 if os.path.isfile(statefile):
     ops.restoreSavedState(statefile)
+    ops.vtkfilecount += 1
 elif os.path.isfile(vtkfile):
     ops.initializeFromVTKFile(vtkfile)
 else:
