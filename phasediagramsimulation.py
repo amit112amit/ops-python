@@ -41,12 +41,23 @@ ops = Model()
 # New simulation or restore an old one from a saved state.
 if os.path.isfile(statefile):
     ops.restoreSavedState(statefile)
-    ops.vtkfilecount += 1
+    vtkcount = ops.vtkfilecount
+    # We need to delete any datasets in the vtkfile that have id > vtkcount
+    with h5py.File(polydatafile, 'a') as hfile:
+        # Get all the keys in the file
+        keyids = [int(k[1:]) for k in hfile.keys()]
+        for key in filter(lambda x: x >= vtkcount, keyids):
+            pointskey = '/T{0}/Points'.format(key)
+            normalskey = '/T{0}/Normals'.format(key)
+            cellskey = '/T{0}/Polygons'.format(key)
+            del hfile[pointskey]
+            del hfile[normalskey]
+            del hfile[cellskey]
 elif os.path.isfile(vtkfile):
     ops.initializeFromVTKFile(vtkfile)
 else:
-    print('FileNotFound :', vtkfile, 'or', statefile)
-    quit()
+    raise FileNotFoundError('Unable to find {} or {} '
+            'in the current directory.'.format(vtkfile, statefile))
 
 # Read the simulation schedule and identify starting state
 schedule = pandas.read_csv('schedule-{}.dat'.format(taskid), sep='\t')
