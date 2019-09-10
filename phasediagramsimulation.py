@@ -47,12 +47,10 @@ if os.path.isfile(statefile):
         # Get all the keys in the file
         keyids = [int(k[1:]) for k in hfile.keys()]
         for key in filter(lambda x: x >= vtkcount, keyids):
-            pointskey = '/T{0}/Points'.format(key)
-            normalskey = '/T{0}/Normals'.format(key)
-            cellskey = '/T{0}/Polygons'.format(key)
-            del hfile[pointskey]
-            del hfile[normalskey]
-            del hfile[cellskey]
+            try:
+                del hfile['/T{0}'.format(key)]
+            except KeyError:
+                pass
 elif os.path.isfile(vtkfile):
     ops.initializeFromVTKFile(vtkfile)
 else:
