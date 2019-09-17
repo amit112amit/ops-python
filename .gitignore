@@ -13,3 +13,4 @@ buildwsl
 build
 .pylintrc
 *.pyc
+.ipynb_checkpoints
