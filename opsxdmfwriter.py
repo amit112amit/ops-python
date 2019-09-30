@@ -102,10 +102,10 @@ def writexdmf(inpfile, outfile):
                 '    <Grid Name="TimeSeries" GridType="Collection" CollectionType="Temporal">\n'
                 )
         with h5py.File(inpfile, 'r') as hdf5file:
-            numkeys = len(hdf5file.keys())
+            numkeys = len(hdf5file.keys()) - 1    # One key has 'Asphericity'
             for key in range(numkeys):
-                # key has the format "T<N>" where N is 0,1,2,3...
-                value = hdf5file['/T{}'.format(key)]
+                # key has the format "T<N>" where N is 0,1,2,3... without angular brackets.
+                value = hdf5file['/T{0}'.format(key)]
                 # Write a tag to XDMF file
                 xdmffile.write(
                         '      <Grid Name="Mesh" GridType="Uniform">\n'
@@ -120,6 +120,7 @@ def writexdmf(inpfile, outfile):
                         '        </Attribute>\n'
                         '        <Time Value="{2}" />\n'
                         '      </Grid>\n'.format(value['Polygons'].shape[0], inpfile, key, value['Points'].shape[0]))
+            # Close the outermost XML tags
             xdmffile.write(
                     '    </Grid>\n'
                     '  </Domain>\n'
