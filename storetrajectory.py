@@ -73,7 +73,7 @@ for index, row in itertools.islice(schedule.iterrows(), skiprows, None):
     ops.fvk = row.Gamma
     ops.morseWellWidth = log(2.0)*100.0/row.PercentStrain
     ops.constraint = row.AreaConstr
-    if index is 0 and rowstep is 0:
+    if index == 0 and rowstep == 0:
         ops.brownCoeff = 0.0
         ops.viscosity = 0.0
         solver.solve()
@@ -129,7 +129,7 @@ for index, row in itertools.islice(schedule.iterrows(), skiprows, None):
             output.clear()
             outputsize += savefrequency
 
-        if i % printstep is 0 and printstep <= rowsteps:
+        if i % printstep == 0 and printstep <= rowsteps:
             vtkcount += 1
 
         ops.updatePreviousX()

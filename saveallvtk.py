@@ -43,7 +43,7 @@ else:
 # Read the simulation schedule and identify starting state
 schedule = pandas.read_csv('schedule-{}.dat'.format(taskid), sep='\t')
 if schedule.ViterMax.sum() < savefrequency:
-    savefrequency = schedule.ViterMax.sum()
+    savefrequency = int(schedule.ViterMax.sum())
 
 vtkcount = ops.vtkfilecount
 step = ops.timestep
@@ -81,7 +81,7 @@ with h5py.File(polydatafile, 'a') as vtkhfile:
         ops.fvk = row.Gamma
         ops.morseWellWidth = log(2.0)*100.0/row.PercentStrain
         ops.constraint = row.AreaConstr
-        if index is 0 and rowstep is 0:
+        if index == 0 and rowstep == 0:
             ops.brownCoeff = 0.0
             ops.viscosity = 0.0
             solver.solve()

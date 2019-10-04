@@ -1,6 +1,8 @@
 import collections
 import itertools
 import os
+import logging
+import time
 from math import log, sqrt
 
 import numpy
@@ -9,12 +11,15 @@ import pandas
 
 from ops import Model, Solver
 
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+
 # -------------------------------------------------------------------------------
 # Get batch job task id if any.
 # -------------------------------------------------------------------------------
 try:
     taskid = os.environ['SGE_TASK_ID']
 except KeyError:
+    logging.info('No SGE_TASK_ID environment variable found. Using `taskid`=1.')
     taskid = 1
 
 # Find the file 'MapIds.txt' if it exists
@@ -22,6 +27,7 @@ try:
     with open('MapIds.txt', 'r') as mapfile:
         ids = mapfile.read().split('\n')[:-1]
     taskid = ids[int(taskid) - 1]
+    logging.info('Found `MapIds.txt`: New `taskid` = %d.', taskid)
 except FileNotFoundError:
     pass
 
@@ -40,18 +46,10 @@ ops = Model()
 
 # New simulation or restore an old one from a saved state.
 if os.path.isfile(statefile):
+    logging.info('Restoring old simulation from %s...', statefile)
     ops.restoreSavedState(statefile)
-    vtkcount = ops.vtkfilecount
-    # We need to delete any datasets in the vtkfile that have id > vtkcount
-    with h5py.File(polydatafile, 'a') as hfile:
-        # Get all the keys in the file
-        keyids = [int(k[1:]) for k in hfile.keys()]
-        for key in filter(lambda x: x >= vtkcount, keyids):
-            try:
-                del hfile['/T{0}'.format(key)]
-            except KeyError:
-                pass
 elif os.path.isfile(vtkfile):
+    logging.info('Starting a new simulation using %s.', vtkfile)
     ops.initializeFromVTKFile(vtkfile)
 else:
     raise FileNotFoundError('Unable to find {} or {} '
@@ -60,13 +58,16 @@ else:
 # Read the simulation schedule and identify starting state
 schedule = pandas.read_csv('schedule-{}.dat'.format(taskid), sep='\t')
 if schedule.ViterMax.sum() < savefrequency:
-    savefrequency = schedule.ViterMax.sum()
+    savefrequency = int(schedule.ViterMax.sum())
+    logging.info('Decreasing `savefrequency` to %d.', savefrequency)
 
 vtkcount = ops.vtkfilecount
 step = ops.timestep
 skiprows, totalsteps = next(itertools.dropwhile(
     lambda x: x[1] <= step, enumerate(schedule.ViterMax.cumsum())))
 rowstep = schedule.ViterMax[skiprows] - (totalsteps - step)
+
+logging.info('Simulation will start from `rowstep=%d` and `step=%d`.', rowstep, step)
 
 # Create solver object
 solver = Solver(ops)
@@ -80,6 +81,7 @@ output = {'Volume': collections.deque(maxlen=savefrequency),
           'RMSAngleDeficit': collections.deque(maxlen=savefrequency)}
 
 if not os.path.isfile(outfile):
+    logging.info('Creating new data file %s.', outfile)
     with h5py.File(outfile, 'w') as hfile:
         for key in output:
             hfile.create_dataset(key, dtype='float32', shape=(savefrequency,),
@@ -87,6 +89,7 @@ if not os.path.isfile(outfile):
                                  chunks=(savefrequency,), compression='gzip')
     outputsize = 0
 else:
+    logging.info('Appending output data to %s.', outfile)
     with h5py.File(outfile, 'a') as hfile:
         outputsize = len(hfile['Volume'])
 
@@ -97,20 +100,38 @@ for index, row in itertools.islice(schedule.iterrows(), skiprows, None):
     ops.fvk = row.Gamma
     ops.morseWellWidth = log(2.0)*100.0/row.PercentStrain
     ops.constraint = row.AreaConstr
-    if index is 0 and rowstep is 0:
+    logging.info('Setting gamma=%f, Morse-width=%f, area constraint=%f.', row.Gamma,
+            ops.morseWellWidth, row.AreaConstr)
+    if index == 0 and rowstep == 0:
+        logging.info('Relaxing the system at zero temperature...')
         ops.brownCoeff = 0.0
         ops.viscosity = 0.0
         solver.solve()
         ops.saveInitialPosition()
 
+    logging.info('Continuing with prescribed alpha=%f, beta=%f', row.Alpha, row.Beta)
     ops.viscosity = row.Alpha
     ops.brownCoeff = sqrt(2*row.Alpha / row.Beta)
 
     rowsteps = int(row.ViterMax)
     printstep = int(row.PrintStep)
 
+    #We need to ensure that the `printstep` is compatible with `savefrequency`
+    try:
+        assert(savefrequency % printstep == 0)
+    except AssertionError:
+        logging.warning('`printstep` should be perfect divisor of %d.', savefrequency)
+        printstep = savefrequency // 125
+        logging.warning('Resetting `printstep` to %d', printstep)
+
+    # Prepare containers to hold 3d shell structure
+    polypartssize = savefrequency // printstep
+    polyparts = collections.deque(maxlen=polypartssize)
+
     ops.updatePreviousX()
 
+    starttime = time.time()
+    logging.info('Starting inner loop. This will take a long time...')
     # ---------------------------------------------------------------------------
     # Inner loop
     # ---------------------------------------------------------------------------
@@ -146,6 +167,7 @@ for index, row in itertools.islice(schedule.iterrows(), skiprows, None):
         # Save visualization, simulation state and/or the output statistics
         # -----------------------------------------------------------------------
         if (step % savefrequency) == savefrequency - 1:
+            logging.info('Writing simulation state to file. Completed %d steps.', step)
             ops.timestep = step
             ops.vtkfilecount = vtkcount
             ops.writeSimulationState(statefile)
@@ -155,17 +177,20 @@ for index, row in itertools.islice(schedule.iterrows(), skiprows, None):
                     hfile[key].write_direct(numpy.array(data), numpy.s_[:], numpy.s_[outputsize:])
                     data.clear()
             outputsize += savefrequency
+            # Write the polydata parts to file
+            with h5py.File(polydatafile, 'a') as hfile:
+                hfile.attrs['TimeSteps'] = vtkcount + 1
+                for subdict in polyparts:
+                    for key, data in subdict.items():
+                        hfile.create_dataset(key, data=data, dtype='float32')
+            polyparts.clear()
 
-        if i % printstep is 0 and printstep <= rowsteps:
+        if i % printstep == 0 and printstep <= rowsteps:
             points, normals, cells = ops.polyDataParts()
             pointskey = '/T{0}/Points'.format(vtkcount)
             normalskey = '/T{0}/Normals'.format(vtkcount)
             cellskey = '/T{0}/Polygons'.format(vtkcount)
-            with h5py.File(polydatafile, 'a') as hfile:
-                hfile.attrs['TimeSteps'] = vtkcount + 1
-                hfile.create_dataset(pointskey, data=points, dtype='float32')
-                hfile.create_dataset(normalskey, data=normals, dtype='float32')
-                hfile.create_dataset(cellskey, data=cells, dtype='uint32')
+            polyparts.append({pointskey:points, normalskey:normals, cellskey:cells})
             vtkcount += 1
 
         ops.updatePreviousX()
@@ -182,3 +207,14 @@ if len(output['Volume']) > 0:
         for key, data in output.items():
             hfile[key].resize((outputsize + len(data),))
             hfile[key].write_direct(numpy.array(data), numpy.s_[:], numpy.s_[outputsize:])
+
+if len(polyparts) > 0:
+    # Write the polydata parts to file
+    with h5py.File(polydatafile, 'a') as hfile:
+        hfile.attrs['TimeSteps'] = vtkcount + 1
+        for subdict in polyparts:
+            for key, data in subdict.items():
+                hfile.create_dataset(key, data=data, dtype='float32')
+
+endtime = time.time()
+logging.info('Simulation completed. Last inner loop took %f seconds.', endtime - starttime)
