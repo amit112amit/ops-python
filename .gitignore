@@ -1,12 +1,10 @@
 build
-*.vtk
 HeatOPSModel.cxx
 __pycache__
 run
 test
 .vscode
 *.so
-*.dat
 buildmsys
 buildmingw
 buildwsl
