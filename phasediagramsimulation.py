@@ -1,3 +1,4 @@
+import argparse
 import collections
 import itertools
 import os
@@ -14,22 +15,22 @@ from ops import Model, Solver
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
 # -------------------------------------------------------------------------------
-# Get batch job task id if any.
+# Check if there is an input argument or else look for an environment variable
 # -------------------------------------------------------------------------------
-try:
-    taskid = os.environ['SGE_TASK_ID']
-except KeyError:
-    logging.info('No SGE_TASK_ID environment variable found. Using `taskid`=1.')
-    taskid = 1
+parser = argparse.ArgumentParser()
+parser.add_argument('-i', '--input', help='Array task id.', required=False)
+args = parser.parse_args()
 
-# Find the file 'MapIds.txt' if it exists
-try:
-    with open('MapIds.txt', 'r') as mapfile:
-        ids = mapfile.read().split('\n')[:-1]
-    taskid = ids[int(taskid) - 1]
-    logging.info('Found `MapIds.txt`: New `taskid` = %d.', taskid)
-except FileNotFoundError:
-    pass
+if args.input is not None:
+    taskid = int(args.input)
+    logging.info('Command line argument provided `taskid=%d`.', taskid)
+else:
+    try:
+        taskid = os.environ['SGE_TASK_ID']
+        logging.info('Environment variable provided `taskid=%d`.', taskid)
+    except KeyError:
+        logging.info('No command line input or SGE_TASK_ID environment variable found. Using `taskid`=1.')
+        taskid = 1
 
 # -------------------------------------------------------------------------------
 # Initialization
