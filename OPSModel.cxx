@@ -6,13 +6,17 @@ namespace OPS
 //! Constructor for BrownOPS
 void OPSModel::initializeFromVTKFile(std::string inFile)
 {
-    // Read point positions from VTK File
-    auto reader = vtkSmartPointer<vtkPolyDataReader>::New();
-    reader->SetFileName(inFile.c_str());
-    reader->ReadAllVectorsOn();
-    reader->Update();
-    auto mesh = reader->GetOutput();
-    _N = mesh->GetNumberOfPoints();
+    // Read initial vertices from VTK File
+    std::vector<std::array<double, 3>> initialpoints;
+    std::vector<std::vector<int>> initialcells;
+    read_polydata(inFile, initialpoints, initialcells);
+    _N = initialpoints.size();
+
+    if (initialcells.size() == 0)
+    {
+        std::cerr << "The input file " << inFile << " has no mesh!" << std::endl;
+        exit(0);
+    }
 
     // Initialize matrices and vectors
     _x = VectorXd::Zero(6 * _N);
@@ -24,10 +28,16 @@ void OPSModel::initializeFromVTKFile(std::string inFile)
 
     // Read point coordinates from input mesh
     for (auto i = 0; i < _N; ++i)
-        mesh->GetPoint(i, &_x(3 * i));
+    {
+        for (auto j = 0; j < 3; ++j)
+        {
+            auto index = 3 * i + j;
+            _x(index) = initialpoints[i][j];
+        }
+    }
 
     // Renormalize by the average edge length
-    auto L = getPointCloudAvgEdgeLen(inFile);
+    auto L = getAvgMeshEdgeLen(initialpoints, initialcells);
     _x /= L;
     updatePreviousX();
 
@@ -43,30 +53,7 @@ void OPSModel::initializeFromVTKFile(std::string inFile)
     updateTriangles();
 
     // Set the initial nearest neighbor map
-    void *coords = (void *)_x.data();
-    auto pointCoords = vtkSmartPointer<vtkDoubleArray>::New();
-    pointCoords->SetVoidArray(coords, 3 * _N, 1);
-    pointCoords->SetNumberOfComponents(3);
-
-    auto points = vtkSmartPointer<vtkPoints>::New();
-    points->SetData(pointCoords);
-
-    // Construct vtkPolyData
-    auto polyData = vtkSmartPointer<vtkPolyData>::New();
-    polyData->SetPoints(points);
-
-    // Construct the kd-tree
-    auto octree = vtkSmartPointer<vtkOctreePointLocator>::New();
-    octree->SetDataSet(polyData);
-    octree->BuildLocator();
-
-    for (auto i = 0; i < _N; i++)
-    {
-        auto neighbors = vtkSmartPointer<vtkIdList>::New();
-        octree->FindClosestNPoints(2, &_x(3 * i), neighbors);
-        neighbors->DeleteId(i);
-        _initialNearestNeighbor.push_back(neighbors->GetId(0));
-    }
+    nearestNeighbors();
 
     // Brownian body initialization
     std::random_device rd;
@@ -79,7 +66,7 @@ void OPSModel::initializeFromVTKFile(std::string inFile)
 void OPSModel::restoreSavedState(std::string stateFile)
 {
     // Read previously stored state to resume the simulation
-    ifstream f(stateFile);
+    std::ifstream f(stateFile);
     std::string line;
     double_t ignore;
     size_t numsPerLine = 9;
@@ -213,42 +200,6 @@ void OPSModel::computeNormals()
                 .vec();
         normal << curr(0), curr(1), curr(2);
     }
-}
-
-//! Print a VTK file
-void OPSModel::printVTKFile(const std::string name)
-{
-    auto triangles = vtkSmartPointer<vtkCellArray>::New();
-    for (const auto &f : _triangles)
-    {
-        triangles->InsertNextCell(3);
-        for (auto j = 0; j < 3; ++j)
-            triangles->InsertCellPoint(f[j]);
-    }
-    // Extract point coordinates for _polyData from x
-    auto pointCoords = vtkSmartPointer<vtkDoubleArray>::New();
-    pointCoords->SetVoidArray((void *)_x.data(), 3 * _N, 1);
-    pointCoords->SetNumberOfComponents(3);
-
-    auto points = vtkSmartPointer<vtkPoints>::New();
-    points->SetData(pointCoords);
-
-    // Convert rotation vectors to point normals
-    auto pointNormals = vtkSmartPointer<vtkDoubleArray>::New();
-    pointNormals->SetName("PointNormals");
-    pointNormals->SetVoidArray((void *)_normals.data(), 3 * _N, 1);
-    pointNormals->SetNumberOfComponents(3);
-
-    // Construct vtkPolyData
-    auto polyData = vtkSmartPointer<vtkPolyData>::New();
-    polyData->SetPoints(points);
-    polyData->GetPointData()->SetNormals(pointNormals);
-    polyData->SetPolys(triangles);
-
-    auto writer = vtkSmartPointer<vtkPolyDataWriter>::New();
-    writer->SetFileName(name.c_str());
-    writer->SetInputData(polyData);
-    writer->Write();
 }
 
 //! Returns coordinates, normals and triangles of a polydata
@@ -417,7 +368,7 @@ void OPSModel::initialRotationVector(RefM3Xd pos, RefM3Xd rotVec)
             angle = (x(2) > 0.0) ? 0.0 : M_PI;
         }
         else
-	{
+        {
             axis = cross_prod.normalized();
             // Dot-product with the z-axis will give the angle of rotation
             angle = acos(x(2));
@@ -482,13 +433,12 @@ double_t OPSModel::getMSD()
 {
     MapM3Xd positions(_x.data(), 3, _N);
     _msd = 0;
-    vtkIdType nn;
     for (auto i = 0; i < _N; ++i)
     {
         Vector3d xi, xj, diff, xi_diff, xj_diff;
         Vector3d xi0, xj0, xi1, xj1, ni0, nj0;
 
-        nn = _initialNearestNeighbor[i];
+        auto nn = _initialNearestNeighbor[i];
 
         xi0 = _initialPositions.col(i);
         xi1 = positions.col(i);
@@ -513,14 +463,13 @@ std::tuple<double_t, double_t> OPSModel::getMeanSquaredDisplacement()
     _msd = 0;
     _msd_tgt = 0;
     std::array<double_t, 2> msdAll;
-    vtkIdType nn;
     // We will subtract off the radial displacement.
     for (auto i = 0; i < _N; ++i)
     {
         Vector3d xi, xj, diff, xi_diff, xj_diff;
         Vector3d xi0, xj0, xi1, xj1, ni0, nj0;
 
-        nn = _initialNearestNeighbor[i];
+        auto nn = _initialNearestNeighbor[i];
 
         xi0 = _initialPositions.col(i);
         xi1 = positions.col(i);
@@ -769,39 +718,41 @@ Eigen::Affine3d OPSModel::find3DAffineTransform(Eigen::Ref<Eigen::Matrix3Xd> in,
 }
 
 //! Find average edge lengthf of a point cloud read from VTK file.
-double_t OPSModel::getPointCloudAvgEdgeLen(std::string vtkfile)
+double_t OPSModel::getAvgMeshEdgeLen(std::vector<std::array<double, 3>> &points,
+                                     std::vector<std::vector<int>> &cells)
 {
-    auto rd = vtkSmartPointer<vtkPolyDataReader>::New();
-    auto newpts = vtkSmartPointer<vtkPoints>::New();
-    auto d3D = vtkSmartPointer<vtkDelaunay3D>::New();
-    auto dssf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-    auto ee = vtkSmartPointer<vtkExtractEdges>::New();
-    auto verts = vtkSmartPointer<vtkIdList>::New();
-
-    rd->SetFileName(vtkfile.c_str());
-    d3D->SetInputConnection(rd->GetOutputPort());
-    dssf->SetInputConnection(d3D->GetOutputPort());
-    ee->SetInputConnection(dssf->GetOutputPort());
-    ee->Update();
-
-    auto edges = ee->GetOutput()->GetLines();
-    edges->InitTraversal();
-    auto avgEdgeLen = 0.0;
-    while (edges->GetNextCell(verts))
+    double avglength = 0.0;
+    std::vector<std::pair<int, int>> edges;
+    for (auto cell : cells)
     {
-        Vector3d xi, xj;
-        ee->GetOutput()->GetPoint(verts->GetId(0), xi.data());
-        ee->GetOutput()->GetPoint(verts->GetId(1), xj.data());
-        avgEdgeLen += (xj - xi).norm();
+        for (int i = 0; i < cell.size() - 1; ++i)
+        {
+            edges.push_back(std::make_pair(cell[i], cell[i + 1]));
+        }
+        edges.push_back(std::make_pair(cell[cell.size() - 1], cell[0]));
     }
-    avgEdgeLen /= edges->GetNumberOfCells();
-    return avgEdgeLen;
+    for (auto edge : edges)
+    {
+        int a = edge.first;
+        int b = edge.second;
+        double ax, ay, az, bx, by, bz;
+        ax = points[a][0];
+        ay = points[a][1];
+        az = points[a][2];
+        bx = points[b][0];
+        by = points[b][1];
+        bz = points[b][2];
+
+        avglength += std::sqrt((ax - bx) * (ax - bx) + (ay - by) * (ay - by) + (az - bz) * (az - bz));
+    }
+    avglength /= edges.size();
+    return avglength;
 }
 
 void OPSModel::writeSimulationState(std::string file)
 {
     // Overwrite any existing file
-    ofstream f(file.c_str());
+    std::ofstream f(file.c_str());
     double_t gamma = 1.0 / _gamma_inv;
     double_t beta = 2.0 * _viscosity / (_brownCoeff * _brownCoeff);
     size_t numsPerLine = 9;
@@ -910,6 +861,30 @@ void OPSModel::writeSimulationState(std::string file)
         f << _x(startIdx) << std::endl;
     }
     f.close();
+}
+
+void OPSModel::nearestNeighbors()
+{
+    MapM3Xd points(&_x(3 * _N), 3, _N);
+    _initialNearestNeighbor.clear();
+    _initialNearestNeighbor.resize(_N, _N + 1);
+    std::vector<double> smallestdistance(_N);
+    std::fill(smallestdistance.begin(), smallestdistance.end(), 1000.0);
+    for (int i = 0; i < _N; ++i)
+    {
+        for (int j = 0; j < _N; ++j)
+        {
+            if (i != j)
+            {
+                double distance = (points.col(i) - points.col(j)).norm();
+                if (distance < smallestdistance[i])
+                {
+                    _initialNearestNeighbor[i] = j;
+                    smallestdistance[i] = distance;
+                }
+            }
+        }
+    }
 }
 
 } // namespace OPS

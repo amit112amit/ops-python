@@ -43,62 +43,6 @@ MatrixX3iR cgalconvexhull(Eigen::Ref<MatrixX3dR> positions)
     return triangles;
 }
 
-MatrixX3iR vtkdelaunay(Eigen::Ref<MatrixX3dR> points)
-{
-    auto pts = vtkSmartPointer<vtkPoints>::New();
-    auto unitPData = vtkSmartPointer<vtkDoubleArray>::New();
-    auto unitSphere = vtkSmartPointer<vtkPolyData>::New();
-    auto dssf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-    auto idf = vtkSmartPointer<vtkIdFilter>::New();
-    auto d3D = vtkSmartPointer<vtkDelaunay3D>::New();
-    auto pointIds = vtkSmartPointer<vtkIdList>::New();
-
-    size_t N = points.rows();
-    MatrixX3dR unitP(N, 3);
-    unitP = points;
-
-    // Make the origin as the center and project the points to a unit sphere
-    unitP = unitP.rowwise() - unitP.colwise().mean();
-    unitP.rowwise().normalize();
-
-    // We need to do this hack to get vtkDelaunay3D to behave well
-    unitP *= 100;
-    unitP.array().round();
-    unitP /= 100;
-
-    void *voidPtr = (void *)unitP.data();
-    unitPData->SetVoidArray(voidPtr, 3 * N, 1);
-    unitPData->SetNumberOfComponents(3);
-    pts->SetData(unitPData);
-
-    unitSphere->SetPoints(pts);
-
-    idf->SetIdsArrayName("PointIds");
-    idf->PointIdsOn();
-    idf->SetInputData(unitSphere);
-    d3D->SetInputConnection(idf->GetOutputPort());
-    dssf->SetInputConnection(d3D->GetOutputPort());
-    dssf->Update();
-
-    auto finalpd = dssf->GetOutput();
-    auto cells = finalpd->GetPolys();
-    auto origIds = finalpd->GetPointData()->GetArray("PointIds");
-
-    cells->InitTraversal();
-
-    MatrixX3iR triangles(cells->GetNumberOfCells(), 3);
-    auto i = 0;
-    while (cells->GetNextCell(pointIds))
-    {
-        for (int j = 0; j < 3; j++)
-        {
-            triangles(i, j) = (int)origIds->GetTuple1(pointIds->GetId(j));
-        }
-        ++i;
-    }
-    return triangles;
-}
-
 MatrixX3iR cgaldelaunay(Eigen::Ref<MatrixX3dR> positions)
 {
     auto N = positions.rows();

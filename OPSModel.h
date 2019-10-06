@@ -13,23 +13,11 @@
 #include <random>
 #include <set>
 #include <stdio.h>
-#include <string.h>
+#include <string>
 #include <tuple>
 #include <vector>
-#include <vtkCellArray.h>
-#include <vtkDataSetSurfaceFilter.h>
-#include <vtkDelaunay3D.h>
-#include <vtkDoubleArray.h>
-#include <vtkExtractEdges.h>
-#include <vtkIdFilter.h>
-#include <vtkIdList.h>
-#include <vtkOctreePointLocator.h>
-#include <vtkPointData.h>
-#include <vtkPoints.h>
-#include <vtkPolyData.h>
-#include <vtkPolyDataReader.h>
-#include <vtkPolyDataWriter.h>
-#include <vtkSmartPointer.h>
+#include <fstream>
+#include "PolyDataReader.h"
 
 namespace OPS {
 
@@ -84,8 +72,9 @@ public:
   inline size_t getNumberOfPoints() { return _N; }
   inline size_t getTimeStep() { return _timestep; }
   inline size_t getVTKFileSuffix() { return _vtkfilesuffix; }
-  double_t getPointCloudAvgEdgeLen(std::string file);
+  double_t getAvgMeshEdgeLen(std::vector<std::array<double, 3>>&, std::vector<std::vector<int>>&);
   double_t getRMSAngleDeficit();
+  void nearestNeighbors();
   inline double_t getTotalEnergy() { return (_morseEn + _normalEn + _circEn); }
   double_t getVolume();
   inline double_t *getF() { return &_f; }
@@ -100,7 +89,6 @@ public:
   }
   void initializeFromVTKFile(std::string vtkfile);
   static void initialRotationVector(RefM3Xd pos, RefM3Xd rotVec);
-  void printVTKFile(const std::string name);
   std::tuple<MatrixX3fR, MatrixX3fR, MatrixX3iR> polyDataParts();
   void restoreSavedState(std::string stateFile);
   inline void saveInitialPosition() {

@@ -11,7 +11,6 @@ PYBIND11_MODULE(ops, m)
     m.doc() = "Oriented Particle System approach for modelling closed shell of point cloud.";
     m.def("cgalconvexhull", &cgalconvexhull, "Project to sphere and make convex hull with CGAL.");
     m.def("cgaldelaunay", &cgaldelaunay, "Project to sphere and make 3D Delaunay with CGAL.");
-    m.def("vtkdelaunay", &vtkdelaunay, "Project to sphere and make 3D Delaunay with VTK.");
     m.def("shellstats", &shellstats, "Convert a row of numbers to a shell and calculate stats.");
 
     py::class_<OPS::OPSModel>(m, "Model")
@@ -22,7 +21,6 @@ PYBIND11_MODULE(ops, m)
         .def("constraintSatisfied", &OPS::OPSModel::constraintSatisfied)
         .def("generateParallelKicks", &OPS::OPSModel::generateParallelKicks)
         .def("initializeFromVTKFile", &OPS::OPSModel::initializeFromVTKFile)
-        .def("printVTKFile", &OPS::OPSModel::printVTKFile)
         .def("polyDataParts", &OPS::OPSModel::polyDataParts, "Return coordinates, normals and triangles.",
              py::return_value_policy::move)
         .def("restoreSavedState", &OPS::OPSModel::restoreSavedState)

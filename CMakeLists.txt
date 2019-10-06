@@ -9,15 +9,6 @@ set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Optimized compilation flags." FORCE
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(VTK REQUIRED)
-vtk_module_config(VTK
-	vtkCommonCore
-	vtkCommonDataModel
-	vtkFiltersCore
-	vtkFiltersExtraction
-	vtkFiltersGeometry
-	vtkIOLegacy)
-
 find_package(CGAL REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS "filesystem")
@@ -39,7 +30,6 @@ target_link_libraries(opslib PUBLIC CGAL::CGAL Eigen3::Eigen)
 
 # Now create Python bindings
 add_subdirectory(pybind11)
-pybind11_add_module(ops OPSModelPython.cxx OPSModel.cxx LBFGSBWrapper.cxx ConvexHull.cxx)
-target_include_directories(ops PUBLIC ${VTK_INCLUDE_DIRS})
-target_link_libraries(ops PUBLIC CGAL::CGAL lbfgsb Eigen3::Eigen ${VTK_LIBRARIES})
-target_compile_definitions(ops PUBLIC "_NO_PRINTING_" ${VTK_DEFINITIONS})
+pybind11_add_module(ops OPSModelPython.cxx OPSModel.cxx LBFGSBWrapper.cxx ConvexHull.cxx PolyDataReader.cxx)
+target_link_libraries(ops PUBLIC CGAL::CGAL lbfgsb Eigen3::Eigen)
+target_compile_definitions(ops PUBLIC "_NO_PRINTING_")
