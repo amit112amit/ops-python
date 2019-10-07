@@ -2,9 +2,13 @@
 Create input files for melting simulations.
 """
 
+import itertools
+import sys
+
+sys.path.append('/usr/lib/python3.7/site-packages')
+
 import pandas as pd
 import numpy as np
-import itertools
 
 ALPHA = 250000
 DELTA = 15

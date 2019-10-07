@@ -3,8 +3,11 @@ import collections
 import itertools
 import os
 import logging
+import sys
 import time
 from math import log, sqrt
+
+sys.path.append('/usr/lib/python3.7/site-packages')
 
 import numpy
 import h5py
