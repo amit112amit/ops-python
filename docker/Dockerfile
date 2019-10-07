@@ -9,9 +9,8 @@ RUN apk add --no-cache --virtual build-dependencies git python3-dev libstdc++ g+
         --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing/ \
         hdf5 py3-numpy py3-h5py py3-pandas && \
     ln -s /usr/include/locale.h /usr/include/xlocale.h && \
-    pip3 install --no-cache-dir boto3
-
-RUN git clone https://github.com/eigenteam/eigen-git-mirror.git && \
+    pip3 install --no-cache-dir boto3 && \
+    git clone https://github.com/eigenteam/eigen-git-mirror.git && \
     cd /eigen-git-mirror && \
     git checkout tags/3.3.7 && \
     mkdir /eigen-git-mirror/build && \

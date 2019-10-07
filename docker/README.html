@@ -1,0 +1,17 @@
+<h1 id="build-and-run-ops-simulations-in-docker">Build and Run OPS Simulations in Docker</h1>
+<h3 id="pull-the-image-from-dockerhub">Pull the image from Dockerhub</h3>
+<pre class="docker"><code>docker image pull amit112amit/alpine-ops:1.0`
+</code></pre>
+<h3 id="sample-run-command">Sample Run Command</h3>
+<ol>
+<li>Create environment variable PYTHONPATH</li>
+<li>Mount local directory inside the container. The local directory contains the driver and the input files.</li>
+<li>Set the working directory inside the container</li>
+<li>Run OPS simulation</li>
+</ol>
+<pre class="docker"><code>docker run -e PYTHONPATH=/usr/lib/python3.7/site-packages:/simulation \
+    -v /home/amit/WorkSpace/UCLA/simulations/Trial:/simulation/run \
+    -w /simulation/run \
+    amit112amit/alpine-ops:1.0 \
+    python phasediagramsimulation.py -i 1
+</code></pre>
